@@ -1,0 +1,7 @@
+# Copy to config.local.yaml and set your paths.
+# config.local.yaml is gitignored.
+
+data:
+  sinhala_path: "data/sinhala"
+  image_caption_path: "data/image_captions.json"
+  explicit_path: ""  # Optional: path to extra data; keep private

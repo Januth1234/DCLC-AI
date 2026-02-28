@@ -1,0 +1,22 @@
+# DCLC 500M — Colab (15 GB GPU, ~3 days)
+# Mount Drive and set data_dir to your Drive path
+
+model:
+  n_layers: 24
+  hidden_dim: 768
+  n_heads: 12
+  ffn_dim: 3072
+  vocab_size: 50000
+  max_seq_len: 1024
+
+training:
+  batch_size: 1
+  gradient_accumulation: 32
+  mixed_precision: true
+  gradient_checkpointing: true
+  max_steps: 12000
+  save_every: 1500
+  lr: 1.0e-4
+  warmup_steps: 500
+  # Override at runtime: --data-dir /content/drive/MyDrive/DCLC_data
+  data_dir: "data"
