@@ -1,0 +1,16 @@
+---
+description: Git sync and commit identity for DCLC-AI
+globs: 
+alwaysApply: false
+---
+
+# Git and GitHub for DCLC-AI
+
+- **Remote**: https://github.com/Januth1234/DCLC-AI
+- **Author email**: Use `nimnaljanuth@gmail.com` (never cursor or bot emails).
+- **Author name**: Januth Nimnal
+
+When making commits in this project:
+1. Ensure `git config user.email` is `nimnaljanuth@gmail.com` for this repo.
+2. Commits will auto-push to `origin` after each commit (post-commit hook).
+3. Branch: `main`.

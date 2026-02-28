@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Data and outputs
+data/
+output/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+model_output/
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config (paths, secrets)
+.env
+.env.local
+config.local.yaml
+*_local.yaml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyInstaller
+*.spec.bak
