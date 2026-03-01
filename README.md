@@ -45,7 +45,7 @@ Dual-Core Latent Composer — unified Sinhala text and image model (500M params)
 
 ## Hardware
 
-- **Inference**: Dual-core CPU, 4GB+ RAM (no GPU required).
+- **Inference**: Dual-core CPU, 4GB+ RAM (low-end devices). No GPU required.
 - **Training**: Colab 15GB GPU recommended (~3 days for 500M).
 
 ## Screenshots

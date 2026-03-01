@@ -53,6 +53,28 @@ If you prefer separate cells:
 
 ---
 
+## Train both 500M and 1B
+
+Use `kaggle_train_both.py` to get both models in one run (corpus + tokenizer once, then 500M, then 1B):
+
+**Cell 1:** Clone
+```python
+!git clone https://github.com/Januth1234/DCLC-AI.git
+%cd DCLC-AI
+```
+
+**Cell 2:** Train both
+```python
+!python scripts/kaggle_train_both.py
+```
+
+Checkpoints: `output_500m/` and `output_1b/`. Save both before session ends:
+```python
+!zip -r dclc_both.zip output_500m output_1b
+```
+
+---
+
 ## Resume after session
 
 To resume from a checkpoint (e.g. after saving to Kaggle Dataset):

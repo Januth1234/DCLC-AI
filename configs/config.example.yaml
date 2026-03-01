@@ -4,4 +4,6 @@
 data:
   sinhala_path: "data/sinhala"
   image_caption_path: "data/image_captions.json"
-  explicit_path: ""  # Optional: path to extra data; keep private
+  explicit_path: ""       # Optional: path to extra text (file or dir of .txt)
+  raw_image_captions_path: ""  # Optional: JSON [{"image_path":"x", "caption":"සිංහල විස්තරය"}]
+  # Kaggle: use /kaggle/input/your-dataset/... for cloud data

@@ -19,6 +19,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/train_500m_colab.yaml")
     p.add_argument("--data-dir", default="data")
+    p.add_argument("--output-dir", default="output", help="Checkpoint folder (e.g. output_500m, output_1b)")
     p.add_argument("--resume", default=None)
     args = p.parse_args()
 
@@ -56,8 +57,12 @@ def main():
         return {"input_ids": torch.tensor(padded, dtype=torch.long), "labels": torch.tensor(padded, dtype=torch.long)}
 
     loader.collate_fn = collate
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    train_cfg["output_dir"] = str(output_dir)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training on: {device} | Output: {output_dir}")
     trainer = Trainer(model, None, loader, train_cfg)
-    Path("output").mkdir(parents=True, exist_ok=True)
     trainer.train(resume_from=args.resume)
 
 

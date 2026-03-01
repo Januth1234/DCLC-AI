@@ -2,7 +2,7 @@
 
 ## Content Policy
 
-DCLC does not restrict content. By default, it can generate explicit or adult content when prompted. There is no built-in content filter.
+DCLC does not restrict content. By default, it can generate explicit or adult content when prompted. There is no built-in content filter. Training can include uncensored data (see docs/RAW_TRAINING.md).
 
 - **Unfiltered mode (default)**: All prompts and outputs are allowed. Explicit content is permitted.
 - **Filtered mode**: Optional. User enables in Settings. May restrict certain content types.

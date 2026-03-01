@@ -1,7 +1,7 @@
 """Gradio UI for DCLC."""
 import gradio as gr
 from app.config import load_config, save_config
-from app.inference import generate_text, generate_image, generate_edit
+from app.inference import generate_text, generate_image, generate_edit, generate_caption
 
 
 def build_ui():
@@ -30,6 +30,11 @@ def build_ui():
                 edit_btn = gr.Button("Edit")
                 edit_out = gr.Image(label="Output")
                 edit_btn.click(fn=lambda img, i: generate_edit(img, i) if img else None, inputs=[edit_img, edit_instr], outputs=[edit_out])
+            with gr.Tab("Annotate"):
+                ann_img = gr.Image(label="Upload image → Sinhala caption")
+                ann_btn = gr.Button("Annotate")
+                ann_out = gr.Textbox(label="Caption (සිංහල)", lines=4)
+                ann_btn.click(fn=generate_caption, inputs=[ann_img], outputs=[ann_out])
             with gr.Tab("Settings"):
                 filter_toggle = gr.Checkbox(label="Content filtering (OFF = unfiltered, default)", value=not cfg.get("allow_unfiltered", True))
                 res_drop = gr.Dropdown(choices=["128", "256"], value=str(cfg.get("resolution", 256)), label="Resolution")

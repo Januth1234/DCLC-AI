@@ -65,6 +65,7 @@ class Trainer:
                 accum_loss = 0.0
             self.global_step += 1
             if self.global_step % self.save_every == 0:
-                torch.save({"model": self.model.state_dict(), "step": self.global_step}, f"output/checkpoint_{self.global_step}.pt")
+                out = self.config.get("output_dir", "output")
+                torch.save({"model": self.model.state_dict(), "step": self.global_step}, f"{out}/checkpoint_{self.global_step}.pt")
             if self.global_step >= self.max_steps:
                 break

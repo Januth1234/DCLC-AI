@@ -51,6 +51,28 @@ def generate_image(model, tokenizer, vq_decoder, prompt: str, grid_size: int = 1
     return vq_decoder.decode_from_ids(grid_ids.unsqueeze(0)) if vq_decoder else None
 
 
+def generate_caption(model, tokenizer, vq_encoder, image: torch.Tensor, max_length: int = 128, **kwargs) -> str:
+    """Image → Sinhala caption. Needs VQ encoder; model trained on image-caption pairs."""
+    if vq_encoder is None:
+        return "(Model needs VQ + image-caption training for annotation)"
+    img_tokens = (vq_encoder.encode_to_ids(image) + tokenizer.visual_start_id).flatten().tolist()
+    img_start = tokenizer.get_special_token_ids().get("[IMG_START]", 0)
+    enc = tokenizer.encode("", add_special_tokens=False) if hasattr(tokenizer, "encode") else []
+    ids = [img_start] + img_tokens + (enc if isinstance(enc, list) else list(enc))
+    device = next(model.parameters()).device
+    input_ids = torch.tensor([ids], dtype=torch.long, device=device)
+    eos_id = tokenizer.get_special_token_ids().get("[EOS]", -1)
+    for _ in range(max_length):
+        with torch.no_grad():
+            logits = model.get_logits(model(input_ids))[:, -1]
+        next_id = logits.argmax(dim=-1, keepdim=True)
+        input_ids = torch.cat([input_ids, next_id], dim=1)
+        if next_id.item() == eos_id:
+            break
+    text_ids = input_ids[0, len(ids):].tolist()
+    return tokenizer.decode(text_ids, skip_special_tokens=True) if hasattr(tokenizer, "decode") else str(text_ids)
+
+
 def generate_edit(model, tokenizer, vq_encoder, vq_decoder, image: torch.Tensor, instruction: str, **kwargs) -> torch.Tensor:
     """Edit image with instruction."""
     img_tokens = vq_encoder.encode_to_ids(image) + tokenizer.visual_start_id

@@ -1,10 +1,6 @@
 """
-Kaggle-ready: run full DCLC pipeline (corpus + tokenizer + train).
-Enable GPU (P100) in Notebook Settings first.
-
-Run after: !git clone ... && %cd DCLC-AI
-
-Training runs ONLY on Kaggle (not locally). Run this script in a Kaggle notebook.
+Train both 500M and 1B models. Corpus + tokenizer once, then 500M, then 1B.
+Enable GPU (P100) in Kaggle Settings. Run after: !git clone ... && %cd DCLC-AI
 """
 import os
 import subprocess
@@ -25,16 +21,16 @@ def run(cmd: str):
 
 def main():
     if not is_kaggle():
-        print("ERROR: Training only runs on Kaggle. This script must run in a Kaggle notebook with GPU.")
-        print("Stopping — no local training.")
+        print("ERROR: Run only on Kaggle. No local training.")
         sys.exit(1)
     run("pip install -q torch torchvision transformers tokenizers datasets pyyaml tqdm regex accelerate")
     run("python scripts/aggregate_sinhala_corpus.py --data-dir data/sinhala")
     if (ROOT / "config.local.yaml").exists():
         run("python scripts/merge_raw_data.py")
     run("python scripts/train_sinhala_tokenizer.py")
-    run("python scripts/train.py --config configs/train_500m_colab.yaml --data-dir data")
-    print("\n=== Done. Checkpoints in output/ ===")
+    run("python scripts/train.py --config configs/train_500m_colab.yaml --data-dir data --output-dir output_500m")
+    run("python scripts/train.py --config configs/train_1b_colab.yaml --data-dir data --output-dir output_1b")
+    print("\n=== Done. output_500m/ and output_1b/ ===")
 
 if __name__ == "__main__":
     main()
