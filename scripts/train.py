@@ -1,5 +1,6 @@
-"""Training entry point."""
+"""Training entry point. Intended for Kaggle/Colab only."""
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,12 @@ from src.training.trainer import Trainer
 
 
 def main():
+    is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
+    allow_local = os.environ.get("ALLOW_LOCAL_TRAIN", "").lower() in ("1", "true", "yes")
+    if not is_kaggle and not allow_local:
+        print("ERROR: Training is for Kaggle/Colab only. Will not run on local device.")
+        print("To override: set ALLOW_LOCAL_TRAIN=1")
+        sys.exit(1)
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/train_500m_colab.yaml")
     p.add_argument("--data-dir", default="data")

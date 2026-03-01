@@ -1,11 +1,31 @@
 # DCLC-AI
 
-Dual-Core Latent Composer — unified Sinhala text and image model (500M params). No diffusion; latent VQ.
+**Dual-Core Latent Composer** — unified Sinhala text and image model (500M / 1B params). No diffusion; latent VQ.
 
+---
+
+## ⚠️ 18+ Only — Consent
+
+**This project is 18+ only.** All content, data sources, and model outputs may include explicit adult material. By **downloading, using, or interacting with DCLC in any way**, you confirm that:
+
+- You are **18 years of age or older** (or the age of majority in your jurisdiction).
+- You **consent** to exposure to adult and explicit content.
+- You use the model at your own responsibility and in compliance with local laws.
+
+The authors do not restrict content; user responsibility and consent are assumed.
+
+---
+
+## Quick links
+
+- **Usage policy**: [USAGE_POLICY.md](USAGE_POLICY.md) — 18+, consent, no content restrictions by default.
 - **Master plan**: [docs/DCLC_MASTER_PLAN.md](docs/DCLC_MASTER_PLAN.md)
-- **Usage policy**: [USAGE_POLICY.md](USAGE_POLICY.md) — no content restrictions by default; optional filter in Settings.
+- **Kaggle training**: [docs/KAGGLE_READY.md](docs/KAGGLE_READY.md) — 2 cells to run full pipeline.
+- **Raw / explicit training**: [docs/RAW_TRAINING.md](docs/RAW_TRAINING.md) · [docs/EXPLICIT_SOURCES_REQUIRED.md](docs/EXPLICIT_SOURCES_REQUIRED.md)
 
-## Installation
+---
+
+## Installation (18+)
 
 - Python 3.10+
 - Create a virtual environment (recommended):
@@ -13,6 +33,7 @@ Dual-Core Latent Composer — unified Sinhala text and image model (500M params)
   ```bash
   python -m venv .venv
   .venv\Scripts\activate   # Windows
+  source .venv/bin/activate   # Linux/macOS
   ```
 
 - Install dependencies:
@@ -21,49 +42,56 @@ Dual-Core Latent Composer — unified Sinhala text and image model (500M params)
   pip install -r requirements.txt
   ```
 
-- For building the app executable: `pip install -r requirements-app.txt`
+- For the Gradio app: `pip install -r requirements-app.txt` (if present).
+
+---
 
 ## Run
 
-- **Gradio app** (text / image / edit):
+- **Gradio app** (text / image / edit / annotate; 18+):
 
   ```bash
   python -m app.main
   ```
 
-- **Training** (after corpus and tokenizer are ready):
+- **Training** is intended for **Kaggle** (GPU). See [docs/KAGGLE_READY.md](docs/KAGGLE_READY.md):
 
-  ```bash
-  python scripts/train.py --config configs/train_500m_colab.yaml
+  **Cell 1:**
+  ```python
+  !git clone https://github.com/Januth1234/DCLC-AI.git
+  %cd DCLC-AI
   ```
 
-- **Full pipeline** (corpus → tokenizer → optional VQ → train):
-
-  ```bash
-  python scripts/run_full_pipeline.py --data-dir data
+  **Cell 2:**
+  ```python
+  !python scripts/kaggle_full_run.py
   ```
+
+  Pipeline: install deps → fetch explicit sources (written + adult) → aggregate Sinhala corpus → merge raw data → train tokenizer → train 500M model. Checkpoints in `output/`.
+
+---
 
 ## Hardware
 
-- **Inference**: Dual-core CPU, 4GB+ RAM (low-end devices). No GPU required.
-- **Training**: Colab 15GB GPU recommended (~3 days for 500M).
+- **Inference**: Dual-core CPU, 4GB+ RAM (low-end). No GPU required.
+- **Training**: Kaggle P100 GPU recommended (~3 days for 500M).
 
-## Screenshots
+---
 
-*(Placeholder: add app screenshots here if desired.)*
+## Data and sources (18+)
+
+- **Sinhala corpus**: Wikimedia Wikipedia, CC-100, OSCAR, NSINA, mC4 (see [docs/CORPUS_SOURCES.md](docs/CORPUS_SOURCES.md)).
+- **Explicit (required)**: Literotica, AO3, ASSTR, StoriesOnline; Pornhub, Aznude, XHamster (text + image/video download). See [docs/EXPLICIT_SOURCES_REQUIRED.md](docs/EXPLICIT_SOURCES_REQUIRED.md).
+
+---
 
 ## Config
 
-- App config: `output/app_config.json` (content filter, resolution, model path, seed).
-- Training: copy `configs/config.example.yaml` to `config.local.yaml`; set `data.sinhala_path`, optional `data.explicit_path`.
+- **App**: `output/app_config.json` (content filter toggle, resolution, model path).
+- **Training**: `config.local.yaml` (optional extra paths). See `configs/config.example.yaml`.
 
-## FAQ / Troubleshooting
-
-- **No GPU**: DCLC runs on CPU (dual-core, 4GB+ RAM). Training is on Colab or GPU.
-- **Tokenizer not found**: Run the full pipeline or `scripts/train_sinhala_tokenizer.py` after aggregating corpus.
-- **Out of memory**: Use smaller batch size, enable gradient checkpointing, or use 128 resolution in the app.
-- **GPU Code 43**: See `scripts/FIX_GPU_CODE_43.md` if you encounter Windows GPU errors.
+---
 
 ## License
 
-See [LICENSE](LICENSE). MIT.
+[MIT](LICENSE). Use implies you are 18+ and consent to adult content.

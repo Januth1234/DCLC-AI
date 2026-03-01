@@ -1,11 +1,17 @@
-"""Download Sinhala corpus from configured sources."""
+"""Download Sinhala corpus from configured sources. Intended for Kaggle only."""
 import logging
 import os
+import sys
 from pathlib import Path
 
 import yaml
 
 logging.basicConfig(level=logging.INFO)
+
+
+def _allow_local():
+    """Run on local device only if explicitly allowed."""
+    return os.environ.get("ALLOW_LOCAL_CORPUS", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +26,7 @@ def load_config(config_path: str = "configs/sinhala_corpus_sources.yaml") -> dic
 
 
 def fetch_huggingface(source: dict) -> list[str]:
-    """Fetch from HuggingFace datasets."""
+    """Fetch from HuggingFace. Supports streaming, max_rows, OSCAR language, auth."""
     try:
         from datasets import load_dataset
     except ImportError:
@@ -29,14 +35,39 @@ def fetch_huggingface(source: dict) -> list[str]:
     try:
         name = source.get("dataset")
         config = source.get("config")
+        language = source.get("language")
         split = source.get("split", "train")
         col = source.get("text_column", "text")
-        ds = load_dataset(name, config or None, split=split, trust_remote_code=True)
+        streaming = source.get("streaming", False)
+        max_rows = source.get("max_rows")
+        use_auth = source.get("use_auth_token", False)
+        token = (os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")) if use_auth else None
+        if use_auth and not token:
+            logger.warning("HF source %s needs HF_TOKEN (or HUGGING_FACE_HUB_TOKEN); skipping", source.get("name"))
+            return []
+
+        kwargs = {"split": split, "trust_remote_code": True}
+        if streaming:
+            kwargs["streaming"] = True
+        if token:
+            kwargs["token"] = token
+        if language:
+            kwargs["language"] = language  # OSCAR
+
+        if language:
+            ds = load_dataset(name, **kwargs)
+        else:
+            ds = load_dataset(name, config or None, **kwargs)
+
         texts = []
+        count = 0
         for row in ds:
+            if max_rows and count >= max_rows:
+                break
             t = row.get(col)
-            if t and isinstance(t, str):
-                texts.append(t.strip())
+            if t and isinstance(t, str) and (s := t.strip()):
+                texts.append(s)
+                count += 1
         return texts
     except Exception as e:
         logger.warning("HF source %s failed: %s", source.get("name"), e)
@@ -61,6 +92,11 @@ def save_to_text_file(lines: list[str], out_path: str) -> None:
 
 def main(data_dir: str = "data/sinhala", config_path: str = "configs/sinhala_corpus_sources.yaml"):
     """Download and aggregate corpus."""
+    is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
+    if not is_kaggle and not _allow_local():
+        print("ERROR: Corpus download is for Kaggle only. Will not run on local device.")
+        print("To override: set ALLOW_LOCAL_CORPUS=1 (or use Kaggle notebook)")
+        sys.exit(1)
     config = load_config(config_path)
     all_lines = []
     for src in config.get("sources", []):

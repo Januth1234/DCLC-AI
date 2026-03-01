@@ -1,6 +1,6 @@
-# Raw / uncensored training
+# Raw / uncensored training (18+)
 
-Explicit training is **compulsory**: every run merges the preloaded default raw corpus (`configs/raw_default.txt`). The model is trained raw; toggling to "good mode" is app-side only (Settings → filter output). Use cloud (Kaggle) for your data.
+**18+ only.** Explicit training is **compulsory**: every run merges the preloaded default raw corpus (`configs/raw_default.txt`). The model is trained raw; toggling to "good mode" is app-side only (Settings → filter output). Use cloud (Kaggle) for your data.
 
 ## Setup
 
@@ -25,6 +25,14 @@ data:
 
 - `explicit_path`: File or directory of `.txt` — appended to corpus. No content filtering.
 - `raw_image_captions_path`: JSON list of `{image_path, caption}` — captions added to corpus.
+
+## Required: scraped explicit sources
+
+Literotica, AO3, ASSTR, and StoriesOnline are **required** — scraped automatically by `fetch_explicit_sources.py`. See [EXPLICIT_SOURCES_REQUIRED.md](EXPLICIT_SOURCES_REQUIRED.md).
+
+## Optional: image/comics (captions)
+
+For image captions from Pixiv, E-Hentai, etc., add via `raw_image_captions_path` in config.local.yaml. See [USER_SOURCES_OPTIONAL.md](USER_SOURCES_OPTIONAL.md).
 
 ## Notes
 

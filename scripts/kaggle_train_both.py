@@ -23,9 +23,10 @@ def main():
     if not is_kaggle():
         print("ERROR: Run only on Kaggle. No local training.")
         sys.exit(1)
-    run("pip install -q torch torchvision transformers tokenizers datasets pyyaml tqdm regex accelerate")
+    run("pip install -q torch torchvision transformers tokenizers datasets pyyaml tqdm regex accelerate requests beautifulsoup4")
+    run("python scripts/fetch_explicit_sources.py")  # required: Literotica, AO3, ASSTR, StoriesOnline
     run("python scripts/aggregate_sinhala_corpus.py --data-dir data/sinhala")
-    run("python scripts/merge_raw_data.py")  # compulsory: preloaded raw + optional config.local.yaml
+    run("python scripts/merge_raw_data.py")  # compulsory: preloaded raw + scraped + optional config.local.yaml
     run("python scripts/train_sinhala_tokenizer.py")
     run("python scripts/train.py --config configs/train_500m_colab.yaml --data-dir data --output-dir output_500m")
     run("python scripts/train.py --config configs/train_1b_colab.yaml --data-dir data --output-dir output_1b")

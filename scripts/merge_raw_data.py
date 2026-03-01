@@ -31,6 +31,10 @@ def load_config(path: str = "configs/config.example.yaml"):
 
 # Built-in default raw corpus — always merged (explicit training compulsory).
 DEFAULT_RAW_PATH = root / "configs" / "raw_default.txt"
+# Scraped explicit sources (written + adult) — required.
+SCRAPED_EXPLICIT_PATH = root / "data" / "explicit_scraped.txt"
+# Scraped media captions (images/videos from Pornhub, Aznude, XHamster) — required.
+SCRAPED_CAPTIONS_PATH = root / "data" / "explicit_media" / "captions.json"
 
 
 def merge_into_corpus(corpus_path: str, config: dict) -> None:
@@ -56,6 +60,40 @@ def merge_into_corpus(corpus_path: str, config: dict) -> None:
                 added += 1
         if added:
             logger.info("Added %d lines from preloaded raw_default (compulsory)", added)
+
+    # 2. Always merge scraped explicit sources (Literotica, AO3, ASSTR, StoriesOnline) — required.
+    if SCRAPED_EXPLICIT_PATH.exists():
+        scraped_added = 0
+        for line in SCRAPED_EXPLICIT_PATH.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if line and line not in seen:
+                seen.add(line)
+                existing.append(line)
+                added += 1
+                scraped_added += 1
+        if scraped_added:
+            logger.info("Added %d lines from scraped explicit sources (required)", scraped_added)
+
+    # 3. Merge scraped media captions (downloaded images/videos from adult sites).
+    if SCRAPED_CAPTIONS_PATH.exists():
+        try:
+            raw = json.loads(SCRAPED_CAPTIONS_PATH.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                raw = raw.get("samples", raw.get("images", raw.get("captions", list(raw.values()))))
+            if not isinstance(raw, list):
+                raw = [raw] if raw else []
+            cap_added = 0
+            for item in raw:
+                cap = item.get("caption", item.get("text", item.get("label", ""))) if isinstance(item, dict) else (item if isinstance(item, str) else "")
+                if isinstance(cap, str) and cap.strip() and cap.strip() not in seen:
+                    seen.add(cap.strip())
+                    existing.append(cap.strip())
+                    added += 1
+                    cap_added += 1
+            if cap_added:
+                logger.info("Added %d captions from scraped media (required)", cap_added)
+        except Exception as e:
+            logger.warning("Could not merge scraped captions: %s", e)
 
     if explicit_path:
         p = Path(explicit_path)

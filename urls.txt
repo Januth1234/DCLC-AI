@@ -1,0 +1,26 @@
+# News site homepages / category pages — crawler will expand these into article links
+# Or add direct article URLs (one per line)
+https://www.adaderana.lk/
+https://www.hirunews.lk/
+https://lankadeepa.lk/
+https://www.dailymirror.lk/
+https://www.dailynews.lk/
+https://www.sundaytimes.lk/
+https://www.newsfirst.lk/
+https://www.island.lk/
+https://www.ceylontoday.lk/
+https://www.colombotelegraph.com/
+https://www.lankacnews.com/
+https://www.lankasrilanka.com/
+https://www.tamilwin.com/
+https://www.asianmirror.lk/
+https://www.silumina.lk/
+https://www.divaina.com/
+https://www.onlanka.com/
+https://www.lankaweb.com/
+https://www.news.lk/
+https://www.mawbima.lk/
+https://www.srilankaguardian.org/
+https://www.toplanka.news/
+https://www.lankahitnews.com/
+https://www.lankabusinessonline.com/

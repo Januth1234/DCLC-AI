@@ -1,10 +1,15 @@
-"""Aggregate Sinhala corpus: run download, merge, dedupe, clean."""
+"""Aggregate Sinhala corpus: run download, merge, dedupe, clean. Intended for Kaggle only."""
 import logging
+import os
 import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root))
+
+
+def _allow_local():
+    return os.environ.get("ALLOW_LOCAL_CORPUS", "").lower() in ("1", "true", "yes")
 import importlib.util
 spec = importlib.util.spec_from_file_location(
     "download", root / "scripts" / "download_sinhala_corpus.py"
@@ -18,6 +23,11 @@ logging.basicConfig(level=logging.INFO)
 
 def main(data_dir: str = "data/sinhala"):
     """Run download and save aggregated corpus."""
+    is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
+    if not is_kaggle and not _allow_local():
+        print("ERROR: Corpus aggregation is for Kaggle only. Will not run on local device.")
+        print("To override: set ALLOW_LOCAL_CORPUS=1")
+        sys.exit(1)
     out = download_main(data_dir=data_dir)
     path = Path(out)
     if path.exists():

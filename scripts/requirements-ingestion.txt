@@ -1,0 +1,8 @@
+# Dependencies for scripts/url_ingestion_pipeline.py
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+langdetect>=1.0.9
+
+# Optional: headless browser for JS-rendered pages
+# pip install playwright && playwright install chromium
+playwright>=1.40.0

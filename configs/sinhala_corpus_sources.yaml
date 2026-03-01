@@ -1,16 +1,52 @@
+# Seed sources: Wikimedia, Common Crawl, HF, Kaggle, NSINA, OPUS, LK NLP, news sites.
+# See docs/CORPUS_SOURCES.md for full reference and seed list.
 sources:
-  - name: sinhala_wikipedia_hf
-    type: huggingface
-    dataset: Minuri/sinhala-corpus-wikipedia400
-    split: train
-    text_column: text
-  - name: wikipedia_sinhala
+  # Wikimedia — Sinhala Wikipedia
+  - name: wikimedia_wikipedia
     type: huggingface
     dataset: wikimedia/wikipedia
     config: 20231101.si
     split: train
     text_column: text
-  - name: ucsc_corpus
-    type: http
-    url: http://ltrl.ucsc.lk/download-3/
-    note: "May require form; fallback if fails"
+    max_rows: 500000  # ~155k articles; limit for memory
+  # CC-100 Sinhala — large Common Crawl derived (452M chars)
+  - name: cc100_sinhala
+    type: huggingface
+    dataset: statmt/cc100
+    config: si
+    split: train
+    text_column: text
+    streaming: true
+    max_rows: 2000000  # ~2M paragraphs for Kaggle
+  # OSCAR — filtered Common Crawl (requires HF token for Common Crawl ToS)
+  - name: oscar_sinhala
+    type: huggingface
+    dataset: oscar-corpus/OSCAR-2201
+    language: si
+    split: train
+    text_column: text
+    streaming: true
+    max_rows: 2000000
+    use_auth_token: true  # set HF_TOKEN env or Hugging Face CLI login
+  # NSINA — Sinhala news corpus (500k+ articles); accept terms on HF first
+  - name: nsina_news
+    type: huggingface
+    dataset: sinhala-nlp/NSINA-Categories
+    split: train
+    text_column: text
+    max_rows: 500000
+  # mC4 — filtered web text (T5-style); ~3GB Sinhala
+  - name: mc4_sinhala
+    type: huggingface
+    dataset: allenai/c4
+    config: si
+    split: train
+    text_column: text
+    streaming: true
+    max_rows: 1000000
+  # Fallback smaller Wikipedia
+  - name: sinhala_wikipedia_400
+    type: huggingface
+    dataset: Minuri/sinhala-corpus-wikipedia400
+    split: train
+    text_column: text
