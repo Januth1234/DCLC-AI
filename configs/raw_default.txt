@@ -1,0 +1,8 @@
+# Default raw corpus — always merged so explicit training is compulsory.
+# Model is trained raw; filtering is app-side only (Settings → Good mode).
+# Add more via config.local.yaml: explicit_path, raw_image_captions_path.
+ඔහු ඇයට ආදරය කළේය.
+ඇය ඔහුව බැහැර කළාය.
+ඔවුන් එකට ගියහ.
+කතාව තවත් දිග හැරෙයි.
+මේක අමතක කරන්න බැහැ.

@@ -36,7 +36,7 @@ def build_ui():
                 ann_out = gr.Textbox(label="Caption (සිංහල)", lines=4)
                 ann_btn.click(fn=generate_caption, inputs=[ann_img], outputs=[ann_out])
             with gr.Tab("Settings"):
-                filter_toggle = gr.Checkbox(label="Content filtering (OFF = unfiltered, default)", value=not cfg.get("allow_unfiltered", True))
+                filter_toggle = gr.Checkbox(label="Good mode (filter output only — model stays raw)", value=not cfg.get("allow_unfiltered", True))
                 res_drop = gr.Dropdown(choices=["128", "256"], value=str(cfg.get("resolution", 256)), label="Resolution")
                 def save_s(checked, res):
                     save_config({"allow_unfiltered": not checked, "resolution": int(res)})

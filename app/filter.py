@@ -1,9 +1,11 @@
-"""Optional content filter. Bypassed when allow_unfiltered True (default)."""
+"""Optional content filter. Bypassed when allow_unfiltered True (default).
+Image generation is never filtered; only text may be filtered when Good mode is ON."""
 import logging
 import re
 logger = logging.getLogger(__name__)
 
-# When filter is ON, optionally match keywords (configurable; empty = no blocking).
+# When filter is ON, optionally match keywords (configurable). Empty = no blocking.
+# We do not block nudes, crime scenes, or violence by default.
 FILTER_KEYWORDS = []
 
 

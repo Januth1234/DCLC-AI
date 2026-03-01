@@ -1,6 +1,6 @@
 # Raw / uncensored training
 
-DCLC can be trained on uncensored data. Use cloud (Kaggle) so data stays there.
+Explicit training is **compulsory**: every run merges the preloaded default raw corpus (`configs/raw_default.txt`). The model is trained raw; toggling to "good mode" is app-side only (Settings → filter output). Use cloud (Kaggle) for your data.
 
 ## Setup
 

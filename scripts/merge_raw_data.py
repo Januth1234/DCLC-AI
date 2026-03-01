@@ -29,8 +29,12 @@ def load_config(path: str = "configs/config.example.yaml"):
     return {}
 
 
+# Built-in default raw corpus — always merged (explicit training compulsory).
+DEFAULT_RAW_PATH = root / "configs" / "raw_default.txt"
+
+
 def merge_into_corpus(corpus_path: str, config: dict) -> None:
-    """Append text from explicit_path and raw_image_captions into corpus."""
+    """Append text from default raw, then explicit_path and raw_image_captions. Explicit training is compulsory."""
     data = config.get("data", {})
     explicit_path = data.get("explicit_path", "")
     raw_captions_path = data.get("raw_image_captions_path", "")
@@ -42,9 +46,21 @@ def merge_into_corpus(corpus_path: str, config: dict) -> None:
     seen = set(existing)
     added = 0
 
+    # 1. Always merge preloaded default raw (compulsory explicit training).
+    if DEFAULT_RAW_PATH.exists():
+        for line in DEFAULT_RAW_PATH.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and line not in seen:
+                seen.add(line)
+                existing.append(line)
+                added += 1
+        if added:
+            logger.info("Added %d lines from preloaded raw_default (compulsory)", added)
+
     if explicit_path:
         p = Path(explicit_path)
         if p.exists():
+            explicit_added = 0
             if p.is_file():
                 for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
                     line = line.strip()
@@ -52,6 +68,7 @@ def merge_into_corpus(corpus_path: str, config: dict) -> None:
                         seen.add(line)
                         existing.append(line)
                         added += 1
+                        explicit_added += 1
             else:
                 for f in p.rglob("*.txt"):
                     for line in f.read_text(encoding="utf-8", errors="ignore").splitlines():
@@ -60,7 +77,9 @@ def merge_into_corpus(corpus_path: str, config: dict) -> None:
                             seen.add(line)
                             existing.append(line)
                             added += 1
-            logger.info("Added %d lines from explicit_path", added)
+                            explicit_added += 1
+            if explicit_added:
+                logger.info("Added %d lines from explicit_path", explicit_added)
 
     if raw_captions_path:
         p = Path(raw_captions_path)
