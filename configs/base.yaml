@@ -1,0 +1,9 @@
+model:
+  n_layers: 24
+  hidden_dim: 768
+  n_heads: 12
+  ffn_dim: 3072
+  vocab_size: 50000
+  max_seq_len: 1024
+  latent_grid_size: 16
+  codebook_size: 8192

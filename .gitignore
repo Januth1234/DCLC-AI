@@ -10,7 +10,8 @@ env/
 *.egg-info/
 .eggs/
 dist/
-build/
+build/*
+!build/dclc.spec
 
 # Data and outputs
 data/

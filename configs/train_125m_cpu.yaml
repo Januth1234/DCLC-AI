@@ -1,0 +1,12 @@
+# 125M model - CPU training
+model:
+  n_layers: 12
+  hidden_dim: 512
+  n_heads: 8
+  ffn_dim: 2048
+
+training:
+  batch_size: 1
+  gradient_accumulation: 16
+  mixed_precision: false
+  gradient_checkpointing: true

@@ -1,0 +1,7 @@
+inference:
+  max_new_tokens: 256
+  temperature: 0.8
+  top_p: 0.95
+  top_k: 50
+  resolution: 256
+  allow_unfiltered: true

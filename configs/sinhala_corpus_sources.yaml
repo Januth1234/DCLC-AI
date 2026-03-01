@@ -1,0 +1,16 @@
+sources:
+  - name: sinhala_wikipedia_hf
+    type: huggingface
+    dataset: Minuri/sinhala-corpus-wikipedia400
+    split: train
+    text_column: text
+  - name: wikipedia_sinhala
+    type: huggingface
+    dataset: wikimedia/wikipedia
+    config: 20231101.si
+    split: train
+    text_column: text
+  - name: ucsc_corpus
+    type: http
+    url: http://ltrl.ucsc.lk/download-3/
+    note: "May require form; fallback if fails"

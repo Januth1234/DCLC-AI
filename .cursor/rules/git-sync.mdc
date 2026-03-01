@@ -13,4 +13,4 @@ alwaysApply: false
 When making commits in this project:
 1. Ensure `git config user.email` is `nimnaljanuth@gmail.com` for this repo.
 2. Commits will auto-push to `origin` after each commit (post-commit hook).
-3. Branch: `main`.
+3. **Branch: always use `main`** (never `master`). Push to `origin main`; set upstream with `git push -u origin main` if needed.

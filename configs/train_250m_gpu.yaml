@@ -1,0 +1,12 @@
+# 250M model - GPU (2GB+)
+model:
+  n_layers: 16
+  hidden_dim: 640
+  n_heads: 10
+  ffn_dim: 2560
+
+training:
+  batch_size: 2
+  gradient_accumulation: 16
+  mixed_precision: true
+  gradient_checkpointing: true
