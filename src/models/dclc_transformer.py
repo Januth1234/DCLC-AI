@@ -29,6 +29,10 @@ class DCLCTransformer(nn.Module):
         self.hidden_dim = hidden_dim
         self.max_seq_len = max_seq_len
         self.vocab_size = vocab_size
+        self._gradient_checkpointing = False
+
+    def gradient_checkpointing_enable(self):
+        self._gradient_checkpointing = True
 
     def _causal_mask(self, seq_len: int, device):
         return torch.tril(torch.ones(seq_len, seq_len, device=device)).unsqueeze(0).unsqueeze(0)
@@ -38,7 +42,10 @@ class DCLCTransformer(nn.Module):
         if mask is None:
             mask = self._causal_mask(input_ids.size(1), input_ids.device)
         for layer in self.layers:
-            x = layer(x, mask)
+            if self._gradient_checkpointing and self.training:
+                x = torch.utils.checkpoint.checkpoint(layer, x, mask, use_reentrant=False)
+            else:
+                x = layer(x, mask)
         x = self.ln_f(x)
         return x
 

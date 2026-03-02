@@ -1,0 +1,25 @@
+# DCLC 2B multimodal: text + image in/out (captioning, text-to-image)
+# Vocab = text (50k) + visual codebook (8192) = 58192
+
+model:
+  n_layers: 40
+  hidden_dim: 2048
+  n_heads: 16
+  ffn_dim: 8192
+  vocab_size: 58192   # 50000 text + 8192 visual
+  max_seq_len: 512
+  codebook_size: 8192
+
+training:
+  batch_size: 1
+  gradient_accumulation: 32
+  mixed_precision: true
+  gradient_checkpointing: true
+  max_steps: 20000
+  save_every: 2000
+  lr: 6.0e-5
+  warmup_steps: 500
+  max_grad_norm: 1.0
+  data_dir: "data"
+  # Mix: fraction of steps that are text-only (rest = image-caption)
+  text_only_prob: 0.4

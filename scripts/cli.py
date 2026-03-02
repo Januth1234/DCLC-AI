@@ -25,20 +25,54 @@ def cmd_train(args):
     train_main()
 
 
+def _resolve_checkpoint(path: str) -> str | None:
+    """Return path to a .pt file: if path is a dir, pick latest checkpoint_*.pt."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    if p.is_file():
+        return str(p)
+    # directory: find latest checkpoint_*.pt
+    checkpoints = list(p.glob("checkpoint_*.pt"))
+    if not checkpoints:
+        return None
+    def step(f):
+        try:
+            return int(f.stem.replace("checkpoint_", ""))
+        except ValueError:
+            return 0
+    latest = max(checkpoints, key=step)
+    return str(latest)
+
+
 def cmd_generate_text(args):
     from src.inference.loader import load_model
     from src.inference.generator import generate_text
     from src.tokenizers.sinhala_tokenizer import SinhalaTokenizer
     from app.config import load_config
+    import yaml
     load_config()
     cfg = load_config()
-    model_path = (args.model_path or cfg.get("model_path") or "output")
+    raw_path = (args.model_path or cfg.get("model_path") or "output")
+    checkpoint_path = _resolve_checkpoint(raw_path)
     tok = SinhalaTokenizer()
     tok.load()
-    model = load_model(model_path, {}) if Path(model_path).exists() else None
+    model_cfg = {}
+    config_file = root / "configs" / "train_500m_colab.yaml"
+    if config_file.exists():
+        try:
+            with open(config_file) as f:
+                model_cfg = (yaml.safe_load(f) or {}).get("model", {})
+        except Exception:
+            pass
+    model = load_model(checkpoint_path, model_cfg) if checkpoint_path else None
     if model is None:
         print("No checkpoint found. Train first or set model_path.", file=sys.stderr)
         return 1
+    import torch
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
     out = generate_text(model, tok, args.prompt, max_length=args.max_length or 256)
     print(out)
     if args.output:
