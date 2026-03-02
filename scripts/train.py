@@ -53,12 +53,14 @@ def main():
         ds.lines = ["සිංහල පාඨය"]
     loader = DataLoader(ds, batch_size=train_cfg.get("batch_size", 1), shuffle=True, num_workers=0)
 
+    max_seq_len = model_cfg.get("max_seq_len", 1024)
+
     def collate(batch):
         from src.tokenizers.sinhala_tokenizer import SinhalaTokenizer
         tok = SinhalaTokenizer()
         tok.load()
-        ids = [tok.encode(b["text"]) for b in batch]
-        max_len = max(len(x) for x in ids)
+        ids = [tok.encode(b["text"])[:max_seq_len] for b in batch]
+        max_len = min(max(len(x) for x in ids), max_seq_len)
         pad_id = tok.get_special_token_ids().get("[PAD]", 0)
         padded = [x + [pad_id] * (max_len - len(x)) for x in ids]
         return {"input_ids": torch.tensor(padded, dtype=torch.long), "labels": torch.tensor(padded, dtype=torch.long)}
