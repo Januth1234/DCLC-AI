@@ -52,7 +52,7 @@ def main():
     laion_tars_arg = ""
     laion_path_arg = ""
     if use_laion:
-        run("python scripts/fetch_laion_subset.py --num-parts 2 --max-samples 20000 --out-dir data/laion")
+        run("python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples 20000 --out-dir data/laion")
         run("python scripts/download_laion_images.py --input data/laion/filtered.parquet --output data/laion/webdataset --shard-size 1000")
         laion_tars_arg = " --laion-tars data/laion/webdataset --laion-prob 0.5 --max-steps 5000"
         laion_path_arg = " --laion-path data/laion/webdataset --laion-prob 0.5"

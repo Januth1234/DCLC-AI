@@ -1,11 +1,49 @@
 # LAION as Additional Image/Text Source
 
-LAION is **additive**: your existing data (explicit media, Sinhala corpus) is unchanged. LAION adds another source of image+caption pairs.
+LAION is **additive**: your existing data (explicit media, Sinhala corpus) is unchanged. LAION adds another source of image+caption pairs. **Both images and text are used for training.**
+
+---
+
+## What you do (simple steps)
+
+### Option A: One command on Kaggle (easiest)
+
+1. Create a Kaggle notebook, turn on GPU (T4 x2).
+2. Clone your repo and run:
+   ```
+   USE_LAION=1 python scripts/kaggle_train_2b_multimodal_hard.py
+   ```
+3. That's it. The script will:
+   - Fetch LAION (laion/relaion2B-en-research-safe) metadata
+   - Download the actual images from URLs
+   - Train VQ on your explicit images + LAION images
+   - Train the 2B model on Sinhala text + explicit captions + LAION images and captions
+
+### Option B: Do it step by step (local or Kaggle)
+
+1. **Get the list of images and captions** (URLs + text):
+   ```
+   python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples 50000
+   ```
+   This creates `data/laion/filtered.parquet` (a list of image URLs and their captions).
+
+2. **Download the images** (turns URLs into real image files):
+   ```
+   python scripts/download_laion_images.py --input data/laion/filtered.parquet --output data/laion/webdataset
+   ```
+   This saves images into `data/laion/webdataset/*.tar`.
+
+3. **Train the model** using your usual pipeline with LAION added:
+   ```
+   python scripts/train_multimodal.py ... --laion-path data/laion/webdataset --laion-prob 0.5
+   ```
+
+---
 
 ## Quick start (Kaggle, small subset)
 
 ```bash
-# With LAION (fetches ~20k samples, downloads to webdataset, trains VQ + 2B with LAION mixed in)
+# With LAION (fetches ~20k samples, downloads images, trains VQ + 2B with LAION mixed in)
 USE_LAION=1 python scripts/kaggle_train_2b_multimodal_hard.py
 ```
 
@@ -15,12 +53,14 @@ Or: `python scripts/kaggle_train_2b_multimodal_hard.py --laion`
 
 ### 1. Fetch LAION metadata and filter
 
+**HuggingFace dataset (recommended – uses laion/relaion2B-en-research-safe):**
 ```bash
-# Dev: 3 parquet parts, cap at 50k samples
-python scripts/fetch_laion_subset.py --subset laion2B-en --num-parts 3 --max-samples 50000 --out-dir data/laion
+python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples 50000 --out-dir data/laion
+```
 
-# Full 2B: all 128 parts (requires disk and time)
-python scripts/fetch_laion_subset.py --subset laion2B-en --num-parts 128 --out-dir data/laion
+**Parquet download (alternative):**
+```bash
+python scripts/fetch_laion_subset.py --subset laion2B-en --num-parts 3 --max-samples 50000 --out-dir data/laion
 ```
 
 Output: `data/laion/filtered.parquet` (columns: URL, TEXT).
