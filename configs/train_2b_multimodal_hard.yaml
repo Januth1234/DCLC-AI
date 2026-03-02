@@ -22,3 +22,7 @@ training:
   max_grad_norm: 1.0
   data_dir: "data"
   text_only_prob: 0.2        # 80% image-caption steps for strong visual learning
+  # LAION (additive): set laion_path to webdataset tars; laion_prob = fraction of image steps from LAION
+  laion_path: null           # e.g. "data/laion/webdataset" or leave null
+  laion_prob: 0.0            # e.g. 0.8 when using 2B LAION; 0 when not using LAION
+  max_caption_len: 200

@@ -26,7 +26,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 from src.models.dclc_transformer import DCLCTransformer
-from src.training.dataset import MixedModalDataset
+from src.training.dataset import MixedModalDataset, UnifiedMultimodalDataset
 from src.training.trainer import Trainer
 from src.tokenizers.sinhala_tokenizer import SinhalaTokenizer
 from src.tokenizers.visual_vq import VisualVQ
@@ -59,6 +59,8 @@ def main():
     p.add_argument("--output-dir", default="output_2b_multimodal")
     p.add_argument("--vq-checkpoint", default="model_output/visual_vq.pt")
     p.add_argument("--resume", default=None)
+    p.add_argument("--laion-path", default=None, help="Path to LAION webdataset tars; mixed with explicit+text (additive)")
+    p.add_argument("--laion-prob", type=float, default=None, help="Fraction of steps from LAION (overrides config when set)")
     args = p.parse_args()
 
     with open(args.config) as f:
@@ -94,8 +96,10 @@ def main():
     corpus_path = data_dir / "sinhala" / "corpus.txt"
     captions_json = data_dir / "explicit_media" / "captions.json"
     image_root = data_dir / "explicit_media"
+    laion_path = train_cfg.get("laion_path") or args.laion_path
+    laion_prob = args.laion_prob if args.laion_prob is not None else train_cfg.get("laion_prob", 0.0)
 
-    ds = MixedModalDataset(
+    mixed_ds = MixedModalDataset(
         str(corpus_path),
         str(captions_json),
         str(image_root),
@@ -105,10 +109,30 @@ def main():
         max_seq_len=max_seq_len,
         text_only_prob=train_cfg.get("text_only_prob", 0.4),
     )
-    if len(ds) == 0:
+    if len(mixed_ds) == 0 and not laion_path:
         if rank == 0:
-            print("No data. Add corpus.txt and/or captions.json + images.")
+            print("No data. Add corpus.txt and/or captions.json + images, or --laion-path.")
         sys.exit(1)
+
+    if laion_path and Path(laion_path).exists():
+        ds = UnifiedMultimodalDataset(
+            mixed_ds,
+            laion_path,
+            text_tok,
+            vq,
+            visual_start_id,
+            laion_prob=laion_prob,
+            max_seq_len=max_seq_len,
+            max_caption_len=train_cfg.get("max_caption_len", 200),
+            rank=rank,
+            world_size=world_size,
+        )
+        if rank == 0:
+            print(f"Using LAION (additive): {laion_path} laion_prob={laion_prob}")
+        use_iterable = True
+    else:
+        ds = mixed_ds
+        use_iterable = False
 
     pad_id = text_tok.get_special_token_ids().get("[PAD]", 0)
 
@@ -125,11 +149,11 @@ def main():
         return {"input_ids": input_ids, "labels": labels}
 
     batch_size = train_cfg.get("batch_size", 1)
-    sampler = DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None
+    sampler = None if use_iterable else (DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None)
     loader = DataLoader(
         ds,
         batch_size=batch_size,
-        shuffle=(sampler is None),
+        shuffle=(sampler is None and not use_iterable),
         sampler=sampler,
         num_workers=0,
         collate_fn=collate,

@@ -25,6 +25,7 @@ except ImportError:
     sys.exit(1)
 
 from src.tokenizers.visual_vq import VisualVQ
+from src.training.dataset import CombinedImageIterableDataset, LAIONImageDataset, _parse_captions_json
 
 
 def setup_ddp():
@@ -44,7 +45,9 @@ class ImageListDataset(Dataset):
         self.image_root = Path(image_root)
         with open(json_path) as f:
             raw = json.load(f)
-        self.samples = raw if isinstance(raw, list) else list(raw.values())
+        self.samples = _parse_captions_json(raw)
+        if not isinstance(self.samples, list):
+            self.samples = list(self.samples) if self.samples else []
         self.size = size
 
     def __len__(self):
@@ -80,6 +83,9 @@ def main():
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--codebook-size", type=int, default=8192)
     p.add_argument("--commitment", type=float, default=0.25)
+    p.add_argument("--laion-tars", default=None, help="Path to LAION webdataset tars; mixes with explicit images")
+    p.add_argument("--laion-prob", type=float, default=0.5, help="Fraction of batches from LAION when --laion-tars set")
+    p.add_argument("--max-steps", type=int, default=None, help="Max batches when using LAION (infinite stream); else use epochs")
     args = p.parse_args()
 
     captions_path = Path(args.captions)
@@ -90,9 +96,9 @@ def main():
 
     ds = ImageListDataset(args.captions, args.image_root)
     valid = [i for i in range(len(ds)) if ds[i] is not None]
-    if len(valid) < 4:
+    if len(valid) < 4 and not args.laion_tars:
         if rank == 0:
-            print("Too few valid images. Need at least a few dozen for VQ training.")
+            print("Too few valid images. Need at least a few dozen for VQ training (or use --laion-tars).")
         sys.exit(1)
 
     class FilteredDataset(Dataset):
@@ -104,8 +110,33 @@ def main():
         def __getitem__(self, i):
             return self.parent[self.indices[i]]
 
-    ds = FilteredDataset(ds, valid)
-    sampler = DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None
+    explicit_ds = FilteredDataset(ds, valid) if len(valid) >= 4 else None
+
+    if args.laion_tars and Path(args.laion_tars).exists():
+        from pathlib import Path as P
+        tars = list(P(args.laion_tars).glob("*.tar"))
+        if tars:
+            if explicit_ds is not None and len(explicit_ds) > 0:
+                ds = CombinedImageIterableDataset(
+                    explicit_ds,
+                    args.laion_tars,
+                    laion_prob=args.laion_prob,
+                    image_size=256,
+                    rank=rank,
+                    world_size=world_size,
+                )
+            else:
+                ds = LAIONImageDataset(args.laion_tars, image_size=256, rank=rank, world_size=world_size)
+            if rank == 0:
+                print(f"VQ training with LAION tars: {args.laion_tars} (laion_prob={args.laion_prob})")
+            sampler = None
+        else:
+            ds = explicit_ds
+            sampler = DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None
+    else:
+        ds = explicit_ds
+        sampler = DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None
+
     loader = DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -127,8 +158,11 @@ def main():
     if is_ddp:
         dist.barrier()
 
+    use_laion = args.laion_tars and Path(args.laion_tars).exists() and list(Path(args.laion_tars).glob("*.tar"))
+    max_steps = args.max_steps if use_laion else None
+
     for epoch in range(args.epochs):
-        if is_ddp:
+        if is_ddp and sampler is not None:
             sampler.set_epoch(epoch)
         vq.train()
         total_loss = 0.0
@@ -149,8 +183,12 @@ def main():
             opt.step()
             total_loss += loss.item()
             n_batches += 1
+            if max_steps is not None and n_batches >= max_steps:
+                break
         if n_batches and rank == 0:
             print(f"Epoch {epoch+1} loss {total_loss/n_batches:.4f}")
+        if max_steps is not None:
+            break
     if rank == 0:
         state = vq.module.state_dict() if is_ddp else vq.state_dict()
         torch.save(state, args.out)
