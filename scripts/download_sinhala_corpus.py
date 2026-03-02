@@ -46,7 +46,7 @@ def fetch_huggingface(source: dict) -> list[str]:
             logger.warning("HF source %s needs HF_TOKEN (or HUGGING_FACE_HUB_TOKEN); skipping", source.get("name"))
             return []
 
-        kwargs = {"split": split, "trust_remote_code": True}
+        kwargs = {"split": split}
         if streaming:
             kwargs["streaming"] = True
         if token:
@@ -93,7 +93,8 @@ def save_to_text_file(lines: list[str], out_path: str) -> None:
 def main(data_dir: str = "data/sinhala", config_path: str = "configs/sinhala_corpus_sources.yaml"):
     """Download and aggregate corpus."""
     is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
-    if not is_kaggle and not _allow_local():
+    is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
+    if not is_kaggle and not is_colab and not _allow_local():
         print("ERROR: Corpus download is for Kaggle only. Will not run on local device.")
         print("To override: set ALLOW_LOCAL_CORPUS=1 (or use Kaggle notebook)")
         sys.exit(1)

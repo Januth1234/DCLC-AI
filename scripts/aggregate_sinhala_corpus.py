@@ -24,7 +24,8 @@ logging.basicConfig(level=logging.INFO)
 def main(data_dir: str = "data/sinhala"):
     """Run download and save aggregated corpus."""
     is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
-    if not is_kaggle and not _allow_local():
+    is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
+    if not is_kaggle and not is_colab and not _allow_local():
         print("ERROR: Corpus aggregation is for Kaggle only. Will not run on local device.")
         print("To override: set ALLOW_LOCAL_CORPUS=1")
         sys.exit(1)
