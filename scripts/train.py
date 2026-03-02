@@ -11,6 +11,9 @@ from torch.utils.data import DataLoader
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root))
 
+import logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 from src.models.dclc_transformer import DCLCTransformer
 from src.training.dataset import TextDataset
 from src.training.trainer import Trainer
@@ -70,7 +73,9 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     train_cfg["output_dir"] = str(output_dir)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ga = train_cfg.get("gradient_accumulation", 1)
     print(f"Training on: {device} | Output: {output_dir}")
+    print(f"Logs every {ga} batches. First log in ~1-2 min...")
     trainer = Trainer(model, None, loader, train_cfg)
     trainer.train(resume_from=args.resume)
 
