@@ -1,0 +1,18 @@
+# High-memory (112GB): more Sinhala text for hard training. Same sources as default, higher caps.
+# Use with:  --config configs/sinhala_corpus_sources_112gb.yaml  or  --high-memory  in pipeline.
+sources:
+  - name: wikimedia_wikipedia
+    type: huggingface
+    dataset: wikimedia/wikipedia
+    config: 20231101.si
+    split: train
+    text_column: text
+    max_rows: 500000
+  - name: mc4_sinhala
+    type: huggingface
+    dataset: allenai/c4
+    config: si
+    split: train
+    text_column: text
+    streaming: true
+    max_rows: 250000   # 112GB: more text; ensure enough RAM (e.g. Colab high-RAM or local)

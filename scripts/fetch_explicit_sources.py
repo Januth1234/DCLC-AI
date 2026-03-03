@@ -51,9 +51,10 @@ def _chunk_text(text: str) -> list[str]:
 def main():
     """Run all scrapers, save to explicit_scraped.txt."""
     is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
+    is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
     allow_local = os.environ.get("ALLOW_LOCAL_CORPUS", "").lower() in ("1", "true", "yes")
-    if not is_kaggle and not allow_local:
-        logger.info("Skipping scrape (Kaggle only, or set ALLOW_LOCAL_CORPUS=1)")
+    if not is_kaggle and not is_colab and not allow_local:
+        logger.info("Skipping scrape (Kaggle/Colab only, or set ALLOW_LOCAL_CORPUS=1)")
         OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT_PATH.write_text("", encoding="utf-8")
         return 0

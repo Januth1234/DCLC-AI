@@ -3,9 +3,12 @@ Kaggle T4 x2 (or 1 GPU): full pipeline for HARD 2B multimodal (ultra-realistic i
   - VQ: 16384 codebook, 120 epochs (high-fidelity tokenizer)
   - LM: 100k steps, 80% image-caption mix, AMP + gradient checkpointing
   - Optional LAION: set USE_LAION=1 or pass --laion to add LAION as extra image+text source (prior sources unchanged).
+  - Optional --clear / CLEAR_DATA=1: clear data, model_output, and checkpoints before run (fresh start).
+  - Optional --high-memory / HIGH_MEMORY=1: use 112GB Sinhala corpus config (more mC4 + Wikipedia).
 
 One command:  python scripts/kaggle_train_2b_multimodal_hard.py
-With LAION:   USE_LAION=1 python scripts/kaggle_train_2b_multimodal_hard.py
+With LAION:   python scripts/kaggle_train_2b_multimodal_hard.py --laion
+Fresh + LAION:  python scripts/kaggle_train_2b_multimodal_hard.py --clear --laion
 """
 import os
 import subprocess
@@ -32,9 +35,19 @@ def run(cmd: str):
         raise SystemExit(r.returncode)
 
 def main():
-    # Use multi-GPU if --multi-gpu, or if we detect 2+ GPUs (e.g. Kaggle T4 x2)
+    # Parse flags early for clear and high-memory
+    do_clear = "--clear" in sys.argv or os.environ.get("CLEAR_DATA", "").lower() in ("1", "true", "yes")
+    clear_cache = "--clear-cache" in sys.argv
+    high_memory = "--high-memory" in sys.argv or os.environ.get("HIGH_MEMORY", "").lower() in ("1", "true", "yes")
     multi_gpu = "--multi-gpu" in sys.argv or os.environ.get("MULTI_GPU", "").lower() in ("1", "true", "yes")
     use_laion = "--laion" in sys.argv or os.environ.get("USE_LAION", "").lower() in ("1", "true", "yes")
+
+    if do_clear:
+        clear_cmd = "python scripts/clear_training_data.py"
+        if clear_cache:
+            clear_cmd += " --clear-cache"
+        run(clear_cmd)
+
     run("pip install -q torch torchvision transformers tokenizers datasets pyyaml tqdm regex accelerate requests beautifulsoup4")
     if use_laion:
         run("pip install -q webdataset img2dataset pyarrow pandas")
@@ -45,14 +58,19 @@ def main():
     nproc = os.environ.get("WORLD_SIZE", str(ngpu)) if multi_gpu else "1"
 
     run("python scripts/fetch_explicit_sources.py")
-    run("python scripts/aggregate_sinhala_corpus.py --data-dir data/sinhala")
+
+    sinhala_config = "configs/sinhala_corpus_sources_112gb.yaml" if high_memory else "configs/sinhala_corpus_sources.yaml"
+    if not (ROOT / sinhala_config).exists():
+        sinhala_config = "configs/sinhala_corpus_sources.yaml"
+    run(f"python scripts/aggregate_sinhala_corpus.py --data-dir data/sinhala --config {sinhala_config}")
     run("python scripts/merge_raw_data.py")
     run("python scripts/train_sinhala_tokenizer.py")
 
     laion_tars_arg = ""
     laion_path_arg = ""
     if use_laion:
-        run("python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples 20000 --out-dir data/laion")
+        laion_max = int(os.environ.get("LAION_MAX_SAMPLES", "50000"))
+        run(f"python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples {laion_max} --out-dir data/laion")
         run("python scripts/download_laion_images.py --input data/laion/filtered.parquet --output data/laion/webdataset --shard-size 1000")
         laion_tars_arg = " --laion-tars data/laion/webdataset --laion-prob 0.5 --max-steps 5000"
         laion_path_arg = " --laion-path data/laion/webdataset --laion-prob 0.5"

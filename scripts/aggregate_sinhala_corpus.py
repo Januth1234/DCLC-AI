@@ -21,7 +21,7 @@ download_main = mod.main
 logging.basicConfig(level=logging.INFO)
 
 
-def main(data_dir: str = "data/sinhala"):
+def main(data_dir: str = "data/sinhala", config_path: str = "configs/sinhala_corpus_sources.yaml"):
     """Run download and save aggregated corpus."""
     is_kaggle = os.path.exists("/kaggle") or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
     is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
@@ -29,7 +29,7 @@ def main(data_dir: str = "data/sinhala"):
         print("ERROR: Corpus aggregation is for Kaggle only. Will not run on local device.")
         print("To override: set ALLOW_LOCAL_CORPUS=1")
         sys.exit(1)
-    out = download_main(data_dir=data_dir)
+    out = download_main(data_dir=data_dir, config_path=config_path)
     path = Path(out)
     if path.exists():
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -45,5 +45,6 @@ if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument("--data-dir", default="data/sinhala")
+    p.add_argument("--config", default="configs/sinhala_corpus_sources.yaml")
     args = p.parse_args()
-    main(args.data_dir)
+    main(args.data_dir, args.config)

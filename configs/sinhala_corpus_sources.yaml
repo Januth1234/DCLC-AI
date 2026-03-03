@@ -10,7 +10,7 @@ sources:
     split: train
     text_column: text
     max_rows: 500000
-  # mC4 — filtered web text (Parquet); reduce max_rows on Colab to avoid OOM
+  # mC4 — filtered web text; keep low on Colab (~12GB RAM) to avoid "Killed" (OOM)
   - name: mc4_sinhala
     type: huggingface
     dataset: allenai/c4
@@ -18,4 +18,4 @@ sources:
     split: train
     text_column: text
     streaming: true
-    max_rows: 300000  # lowered for Colab memory; raise on Kaggle if desired
+    max_rows: 80000   # safe for Colab; raise to 200000+ on Kaggle or local
