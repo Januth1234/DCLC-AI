@@ -59,7 +59,14 @@ def main():
 
     run("python scripts/fetch_explicit_sources.py")
 
-    sinhala_config = "configs/sinhala_corpus_sources_112gb.yaml" if high_memory else "configs/sinhala_corpus_sources.yaml"
+    # Colab has ~12GB RAM: use Colab-safe config to avoid OOM (Killed). Kaggle/local can use 112gb.
+    is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
+    if is_colab:
+        sinhala_config = "configs/sinhala_corpus_sources_colab.yaml"
+    elif high_memory:
+        sinhala_config = "configs/sinhala_corpus_sources_112gb.yaml"
+    else:
+        sinhala_config = "configs/sinhala_corpus_sources.yaml"
     if not (ROOT / sinhala_config).exists():
         sinhala_config = "configs/sinhala_corpus_sources.yaml"
     run(f"python scripts/aggregate_sinhala_corpus.py --data-dir data/sinhala --config {sinhala_config}")

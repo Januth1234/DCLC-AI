@@ -32,12 +32,19 @@ def main(data_dir: str = "data/sinhala", config_path: str = "configs/sinhala_cor
     out = download_main(data_dir=data_dir, config_path=config_path)
     path = Path(out)
     if path.exists():
-        lines = path.read_text(encoding="utf-8").splitlines()
-        lines = [l.strip() for l in lines if l.strip()]
-        if not lines:
+        # Stream normalize (strip, drop empty) without loading entire file into RAM (avoids OOM on Colab)
+        tmp = path.with_suffix(path.suffix + ".norm.tmp")
+        n = 0
+        with open(path, "r", encoding="utf-8") as fin, open(tmp, "w", encoding="utf-8") as fout:
+            for line in fin:
+                s = line.strip()
+                if s:
+                    fout.write(s + "\n")
+                    n += 1
+        tmp.replace(path)
+        if n == 0:
             logging.warning("Corpus is empty after download; writing placeholder line.")
-            lines = ["සිංහල පාඨය"]
-        path.write_text("\n".join(lines), encoding="utf-8")
+            path.write_text("සිංහල පාඨය", encoding="utf-8")
     return out
 
 

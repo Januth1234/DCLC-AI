@@ -1,0 +1,18 @@
+# Colab (low RAM ~12GB): keep corpus small to avoid "Killed" (OOM).
+# Used automatically on Colab; use default or 112gb config on Kaggle/local.
+sources:
+  - name: wikimedia_wikipedia
+    type: huggingface
+    dataset: wikimedia/wikipedia
+    config: 20231101.si
+    split: train
+    text_column: text
+    max_rows: 100000
+  - name: mc4_sinhala
+    type: huggingface
+    dataset: allenai/c4
+    config: si
+    split: train
+    text_column: text
+    streaming: true
+    max_rows: 40000
