@@ -82,10 +82,12 @@ def main():
         laion_tars_arg = " --laion-tars data/laion/webdataset --laion-prob 0.5 --max-steps 5000"
         laion_path_arg = " --laion-path data/laion/webdataset --laion-prob 0.5"
 
-    # VQ: train hard — 16384 codebook, 120 epochs (optionally with LAION)
+    # VQ: train hard — 16384 codebook, 120 epochs; larger batch + workers so CPU loads while GPU trains
+    vq_batch = int(os.environ.get("VQ_BATCH_SIZE", "24"))
+    vq_workers = " --num-workers 4" if not use_laion else ""  # 4 workers when map-style (explicit only)
     vq_cmd = (
         "python scripts/train_visual_vq.py"
-        " --epochs 120 --codebook-size 16384 --batch-size 8"
+        f" --epochs 120 --codebook-size 16384 --batch-size {vq_batch}{vq_workers}"
         " --lr 1e-4 --commitment 0.25"
         " --captions data/explicit_media/captions.json"
         " --image-root data/explicit_media --out model_output/visual_vq.pt"
@@ -94,7 +96,7 @@ def main():
     if multi_gpu and int(nproc) >= 2:
         vq_cmd = (
             f"torchrun --nproc_per_node={nproc} scripts/train_visual_vq.py"
-            " --epochs 120 --codebook-size 16384 --batch-size 8 --lr 1e-4"
+            f" --epochs 120 --codebook-size 16384 --batch-size {vq_batch}{vq_workers} --lr 1e-4"
             " --out model_output/visual_vq.pt"
             " --captions data/explicit_media/captions.json --image-root data/explicit_media"
             + laion_tars_arg

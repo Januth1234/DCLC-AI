@@ -149,16 +149,21 @@ def main():
         return {"input_ids": input_ids, "labels": labels}
 
     batch_size = train_cfg.get("batch_size", 1)
+    num_workers = train_cfg.get("num_workers", 4)  # CPU workers: load/tokenize while GPU trains
+    prefetch_factor = train_cfg.get("prefetch_factor", 2)  # batches per worker (RAM↔GPU overlap)
     sampler = None if use_iterable else (DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None)
-    loader = DataLoader(
-        ds,
+    loader_kw = dict(
         batch_size=batch_size,
         shuffle=(sampler is None and not use_iterable),
         sampler=sampler,
-        num_workers=0,
+        num_workers=num_workers,
         collate_fn=collate,
         pin_memory=True,
+        persistent_workers=(num_workers > 0),
     )
+    if num_workers > 0:
+        loader_kw["prefetch_factor"] = prefetch_factor
+    loader = DataLoader(ds, **loader_kw)
 
     model = DCLCTransformer(
         vocab_size=vocab_size,

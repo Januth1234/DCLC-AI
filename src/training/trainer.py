@@ -42,8 +42,10 @@ class Trainer:
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train_step(self, batch):
-        input_ids = batch["input_ids"].to(self.device)
-        labels = batch.get("labels", input_ids).to(self.device)
+        # non_blocking=True: overlap CPU→GPU copy with previous GPU work (CPU prepares next batch)
+        non_block = self.device.type == "cuda"
+        input_ids = batch["input_ids"].to(self.device, non_blocking=non_block)
+        labels = batch.get("labels", input_ids).to(self.device, non_blocking=non_block)
         if self.model.training:
             self.model.train()
         if self.use_amp:

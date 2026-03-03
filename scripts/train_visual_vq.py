@@ -86,6 +86,7 @@ def main():
     p.add_argument("--laion-tars", default=None, help="Path to LAION webdataset tars; mixes with explicit images")
     p.add_argument("--laion-prob", type=float, default=0.5, help="Fraction of batches from LAION when --laion-tars set")
     p.add_argument("--max-steps", type=int, default=None, help="Max batches when using LAION (infinite stream); else use epochs")
+    p.add_argument("--num-workers", type=int, default=0, help="DataLoader workers for image load (0 for iterable/LAION; 4 for map-style to overlap CPU/GPU)")
     args = p.parse_args()
 
     captions_path = Path(args.captions)
@@ -137,15 +138,20 @@ def main():
         ds = explicit_ds
         sampler = DistributedSampler(ds, shuffle=True, num_replicas=world_size, rank=rank) if is_ddp else None
 
-    loader = DataLoader(
-        ds,
+    # When map-style (explicit_ds): use workers so CPU loads images while GPU trains
+    nw = args.num_workers if sampler is not None else 0
+    loader_kw = dict(
         batch_size=args.batch_size,
         shuffle=(sampler is None),
         sampler=sampler,
-        num_workers=0,
+        num_workers=nw,
         drop_last=True,
         pin_memory=True,
+        persistent_workers=(nw > 0),
     )
+    if nw > 0:
+        loader_kw["prefetch_factor"] = 2
+    loader = DataLoader(ds, **loader_kw)
 
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     vq = VisualVQ(codebook_size=args.codebook_size, latent_size=16).to(device)

@@ -11,8 +11,10 @@ model:
   codebook_size: 16384
 
 training:
-  batch_size: 1
-  gradient_accumulation: 8    # 4 GPUs x 8 = 32 effective; 1 GPU = 8
+  batch_size: 8               # fill GPU (was 1 → ~1GB; 8 uses ~8–12GB on 15GB)
+  gradient_accumulation: 4     # effective 32 per GPU; scale lr if changing
+  num_workers: 4              # CPU workers: load/prepare batches while GPU trains
+  prefetch_factor: 2          # each worker prefetches this many batches (RAM ↔ GPU overlap)
   mixed_precision: true
   gradient_checkpointing: true
   max_steps: 100000          # train hard
