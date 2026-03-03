@@ -4,9 +4,11 @@ Use for dev (small) or full 2B. Prior data sources unchanged; LAION is additive.
 
 Usage:
   HuggingFace dataset (recommended):  python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples 50000
-  Parquet download:                   python scripts/fetch_laion_subset.py --num-parts 3 --max-samples 50000
+  Low storage (Colab):               python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --low-storage --max-samples 20000
+  Parquet download:                  python scripts/fetch_laion_subset.py --num-parts 3 --max-samples 50000
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +22,65 @@ SUBSETS = {
     "laion2B-en": ("laion/laion2B-en", LAION2B_EN_PATTERN),
     "laion2B-multi": ("laion/laion2B-multi", LAION2B_MULTI_PATTERN),
 }
+
+
+def fetch_via_hf_low_storage(
+    hf_name: str,
+    max_samples: int | None,
+    min_size: int,
+    out_path: Path,
+    max_parquet_files: int = 1,
+) -> None:
+    """Download only the first N parquet files (~3.6GB each) to save disk. No full dataset download."""
+    import pandas as pd
+    from huggingface_hub import HfApi, hf_hub_download
+
+    if max_samples is None:
+        max_samples = 20000
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    print(f"Low-storage: loading up to {max_parquet_files} parquet file(s) from {hf_name} (max {max_samples} samples)...")
+    api = HfApi(token=token)
+    files = api.list_repo_files(repo_id=hf_name, repo_type="dataset")
+    parquet_files = sorted([f for f in files if f.endswith(".parquet") and not f.startswith(".")])[:max_parquet_files]
+    if not parquet_files:
+        raise RuntimeError(f"No parquet files found in {hf_name}")
+    dfs = []
+    need = max_samples or 10**9
+    for fn in parquet_files:
+        path = hf_hub_download(
+            repo_id=hf_name,
+            filename=fn,
+            repo_type="dataset",
+            token=token,
+            local_dir=None,
+        )
+        df = pd.read_parquet(path)
+        if "URL" not in df.columns and "url" in df.columns:
+            df = df.rename(columns={"url": "URL"})
+        if "TEXT" not in df.columns and "caption" in df.columns:
+            df = df.rename(columns={"caption": "TEXT"})
+        if "TEXT" not in df.columns and "text" in df.columns:
+            df = df.rename(columns={"text": "TEXT"})
+        if "width" in df.columns and "height" in df.columns and min_size > 0:
+            try:
+                w = pd.to_numeric(df["width"], errors="coerce").fillna(0).astype(int)
+                h = pd.to_numeric(df["height"], errors="coerce").fillna(0).astype(int)
+                df = df[(w >= min_size) & (h >= min_size)]
+            except Exception:
+                pass
+        df = df.dropna(subset=["URL", "TEXT"])
+        df = df[["URL", "TEXT"]].copy()
+        df["TEXT"] = df["TEXT"].astype(str).str[:5000]
+        dfs.append(df)
+        if sum(len(d) for d in dfs) >= need:
+            break
+    combined = pd.concat(dfs, ignore_index=True)
+    if max_samples and len(combined) > max_samples:
+        combined = combined.sample(n=max_samples, random_state=42)
+    else:
+        combined = combined.sample(frac=1, random_state=42)
+    combined.to_parquet(out_path, index=False)
+    print(f"Wrote {len(combined)} rows to {out_path}")
 
 
 def fetch_via_hf_dataset(hf_name: str, max_samples: int | None, min_size: int, out_path: Path) -> None:
@@ -67,8 +128,10 @@ def main():
     p = argparse.ArgumentParser(description="Fetch and filter LAION metadata")
     p.add_argument("--subset", default=None, choices=list(SUBSETS.keys()), help="Use parquet download (ignore if --hf-dataset set)")
     p.add_argument("--hf-dataset", default=None, help="HuggingFace dataset, e.g. laion/relaion2B-en-research-safe")
+    p.add_argument("--low-storage", action="store_true", help="Download only 1–2 parquet files (~3.6GB each) for Colab/low disk; use with --hf-dataset")
+    p.add_argument("--max-parquet-files", type=int, default=1, help="With --low-storage: how many parquet files to download (1 = ~3.6GB)")
     p.add_argument("--num-parts", type=int, default=3, help="Number of parquet parts (1-128). Use 128 for full 2B.")
-    p.add_argument("--max-samples", type=int, default=None, help="Cap samples (dev). Use 50000 for HF dataset to avoid OOM.")
+    p.add_argument("--max-samples", type=int, default=None, help="Cap samples (dev). Use 20000 with --low-storage, 50000 for full HF.")
     p.add_argument("--min-size", type=int, default=256, help="Min width/height if columns exist")
     p.add_argument("--out-dir", default="data/laion")
     p.add_argument("--metadata-dir", default=None, help="Subdir for parquet; default out-dir/metadata")
@@ -84,7 +147,16 @@ def main():
         except ImportError:
             print("Install: pip install pandas pyarrow")
             sys.exit(1)
-        fetch_via_hf_dataset(args.hf_dataset, args.max_samples, args.min_size, out_path)
+        if args.low_storage:
+            fetch_via_hf_low_storage(
+                args.hf_dataset,
+                args.max_samples,
+                args.min_size,
+                out_path,
+                max_parquet_files=args.max_parquet_files,
+            )
+        else:
+            fetch_via_hf_dataset(args.hf_dataset, args.max_samples, args.min_size, out_path)
         return
 
     try:

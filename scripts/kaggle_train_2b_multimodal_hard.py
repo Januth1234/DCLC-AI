@@ -3,6 +3,7 @@ Kaggle T4 x2 (or 1 GPU): full pipeline for HARD 2B multimodal (ultra-realistic i
   - VQ: 16384 codebook, 120 epochs (high-fidelity tokenizer)
   - LM: 100k steps, 80% image-caption mix, AMP + gradient checkpointing
   - Optional LAION: set USE_LAION=1 or pass --laion to add LAION as extra image+text source (prior sources unchanged).
+  - On Colab, LAION uses --low-storage (1 parquet file ~3.6GB) to avoid disk full; set LAION_LOW_STORAGE=1 on Kaggle for same.
   - Optional --clear / CLEAR_DATA=1: clear data, model_output, and checkpoints before run (fresh start).
   - Optional --high-memory / HIGH_MEMORY=1: use 112GB Sinhala corpus config (more mC4 + Wikipedia).
 
@@ -76,8 +77,14 @@ def main():
     laion_tars_arg = ""
     laion_path_arg = ""
     if use_laion:
-        laion_max = int(os.environ.get("LAION_MAX_SAMPLES", "50000"))
-        run(f"python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples {laion_max} --out-dir data/laion")
+        laion_low_storage = is_colab or os.environ.get("LAION_LOW_STORAGE", "").lower() in ("1", "true", "yes")
+        laion_max = int(os.environ.get("LAION_MAX_SAMPLES", "20000" if laion_low_storage else "50000"))
+        fetch_cmd = (
+            f"python scripts/fetch_laion_subset.py --hf-dataset laion/relaion2B-en-research-safe --max-samples {laion_max} --out-dir data/laion"
+        )
+        if laion_low_storage:
+            fetch_cmd += " --low-storage --max-parquet-files 1"
+        run(fetch_cmd)
         run("python scripts/download_laion_images.py --input data/laion/filtered.parquet --output data/laion/webdataset --shard-size 1000")
         laion_tars_arg = " --laion-tars data/laion/webdataset --laion-prob 0.5 --max-steps 5000"
         laion_path_arg = " --laion-path data/laion/webdataset --laion-prob 0.5"
