@@ -1,4 +1,5 @@
 """XHamster scraper: text + image/video download. User has permission."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import RATE, fetch
+
+logger = logging.getLogger(__name__)
 
 LISTING_URLS = [
     "https://xhamster.com/videos",
@@ -59,9 +62,11 @@ def scrape_xhamster(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[
             if count >= max_items:
                 break
             url = f"{list_url}?page={page}" if page > 1 else list_url
+            logger.info("XHamster: fetching listing %s (page %d)", list_url, page)
             time.sleep(rate)
             html = fetch(url)
             if not html:
+                logger.info("XHamster: no HTML for %s, skipping", url)
                 continue
             for text in _extract_text_items(html, url):
                 key = text[:100]
@@ -72,6 +77,7 @@ def scrape_xhamster(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[
             for link in _listing_links(html, url):
                 if count >= max_items:
                     break
+                logger.info("XHamster: fetching video page %s", link)
                 time.sleep(rate)
                 page_html = fetch(link)
                 if not page_html:
@@ -115,9 +121,11 @@ def scrape_xhamster_media(
     for list_url in LISTING_URLS:
         for page in range(1, MAX_PAGES + 1):
             url = f"{list_url}?page={page}" if page > 1 else list_url
+            logger.info("XHamster media: fetching listing %s (page %d)", list_url, page)
             time.sleep(rate)
             html = fetch(url)
             if not html:
+                logger.info("XHamster media: no HTML for %s, skipping", url)
                 continue
             soup = BeautifulSoup(html, "html.parser")
             cap = (soup.find("title").get_text(strip=True) if soup.find("title") else "")[:200]

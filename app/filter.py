@@ -4,9 +4,19 @@ import logging
 import re
 logger = logging.getLogger(__name__)
 
-# When filter is ON, optionally match keywords (configurable). Empty = no blocking.
-# We do not block nudes, crime scenes, or violence by default.
-FILTER_KEYWORDS = []
+# When filter is ON, match a small built-in set of explicit terms.
+# You can extend this list locally or generate a larger blocklist from your corpus.
+FILTER_KEYWORDS = [
+    "porn",
+    "porno",
+    "pornography",
+    "xxx",
+    "sex",
+    "sexual",
+    "nude",
+    "naked",
+    "erotic",
+]
 
 
 def content_filter_check(allow_unfiltered: bool, prompt: str = "", output_text: str = "") -> bool:

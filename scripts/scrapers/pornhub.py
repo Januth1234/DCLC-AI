@@ -1,4 +1,5 @@
 """Pornhub scraper: text + image/video download. User has permission."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import RATE, fetch
+
+logger = logging.getLogger(__name__)
 
 LISTING_URLS = [
     "https://www.pornhub.com/video",
@@ -82,9 +85,11 @@ def scrape_pornhub(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[t
             if count >= max_items:
                 break
             url = f"{list_url}?page={page}" if page > 1 else list_url
+            logger.info("Pornhub: fetching listing %s (page %d)", list_url, page)
             time.sleep(rate)
             html = fetch(url)
             if not html:
+                logger.info("Pornhub: no HTML for %s, skipping", url)
                 continue
             for text in _extract_text_items(html, url):
                 key = text[:100]
@@ -93,6 +98,7 @@ def scrape_pornhub(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[t
                     count += 1
                     yield (text, url)
             links = _listing_links(html, url)
+            logger.info("Pornhub: found %d video links on %s", len(links), url)
             for link in links:
                 if count >= max_items or link in seen:
                     continue
@@ -106,6 +112,7 @@ def scrape_pornhub(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[t
                         seen.add(key)
                         count += 1
                         yield (text, link)
+    logger.info("Pornhub: finished with %d text items", count)
 
 
 def scrape_pornhub_media(
@@ -118,9 +125,11 @@ def scrape_pornhub_media(
     img_count = 0
     vid_count = 0
     for list_url in LISTING_URLS[:1]:
+        logger.info("Pornhub media: fetching listing %s", list_url)
         time.sleep(rate)
         html = fetch(list_url)
         if not html:
+            logger.info("Pornhub media: no HTML for %s, skipping", list_url)
             continue
         caption = ""
         for tag in ["meta[property='og:title']", "title"]:

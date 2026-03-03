@@ -1,4 +1,5 @@
 """Aznude scraper: text + image download. User has permission."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import RATE, fetch
+
+logger = logging.getLogger(__name__)
 
 LISTING_URLS = [
     "https://www.aznude.com/",
@@ -62,9 +65,11 @@ def scrape_aznude(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[tu
     for list_url in LISTING_URLS:
         if count >= max_items:
             break
+        logger.info("Aznude: fetching listing %s", list_url)
         time.sleep(rate)
         html = fetch(list_url)
         if not html:
+            logger.info("Aznude: no HTML for %s, skipping", list_url)
             continue
         for text in _extract_text_items(html, list_url):
             key = text[:100]
@@ -75,6 +80,7 @@ def scrape_aznude(max_items: int = MAX_ITEMS, rate: float = RATE) -> Iterator[tu
         for link in _page_links(html, list_url):
             if count >= max_items:
                 break
+            logger.info("Aznude: fetching page %s", link)
             time.sleep(rate)
             page_html = fetch(link)
             if not page_html:
@@ -104,9 +110,11 @@ def scrape_aznude_media(max_images: int = 60, rate: float = RATE) -> Iterator[tu
     seen = set()
     count = 0
     for list_url in LISTING_URLS:
+        logger.info("Aznude media: fetching listing %s", list_url)
         time.sleep(rate)
         html = fetch(list_url)
         if not html:
+            logger.info("Aznude media: no HTML for %s, skipping", list_url)
             continue
         soup = BeautifulSoup(html, "html.parser")
         title_el = soup.find("title")

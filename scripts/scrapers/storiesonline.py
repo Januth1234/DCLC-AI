@@ -1,4 +1,5 @@
 """StoriesOnline scraper: list → story links → story text."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import fetch, RATE
+
+logger = logging.getLogger(__name__)
 
 LIST_URL = "https://storiesonline.net/list/"
 MAX_STORIES = 30
@@ -46,11 +49,14 @@ def scrape_storiesonline(max_stories: int = MAX_STORIES, rate: float = RATE) -> 
     """Yield (text, source_url)."""
     seen = set()
     count = 0
+    logger.info("StoriesOnline: starting scrape (max_stories=%d, rate=%.2fs)", max_stories, rate)
     time.sleep(rate)
     html = fetch(LIST_URL)
     if not html:
+        logger.info("StoriesOnline: no HTML for %s, aborting", LIST_URL)
         return
     links = _story_links(html, LIST_URL)
+    logger.info("StoriesOnline: found %d story links on listing page", len(links))
     for link in links:
         if count >= max_stories or link in seen:
             continue
@@ -63,3 +69,4 @@ def scrape_storiesonline(max_stories: int = MAX_STORIES, rate: float = RATE) -> 
         if text and len(text) >= 50:
             count += 1
             yield (text, link)
+    logger.info("StoriesOnline: finished with %d stories", count)

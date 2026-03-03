@@ -1,4 +1,5 @@
 """Literotica scraper: category → story links → story text."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import RATE, fetch
+
+logger = logging.getLogger(__name__)
 
 # Category indexes for story listings
 CATEGORY_URLS = [
@@ -53,6 +56,7 @@ def scrape_literotica(max_stories: int = MAX_STORIES, rate: float = RATE) -> Ite
     """Yield (text, source_url)."""
     seen = set()
     count = 0
+    logger.info("Literotica: starting scrape (max_stories=%d, rate=%.2fs)", max_stories, rate)
     for cat_url in CATEGORY_URLS:
         if count >= max_stories:
             break
@@ -60,11 +64,14 @@ def scrape_literotica(max_stories: int = MAX_STORIES, rate: float = RATE) -> Ite
             if count >= max_stories:
                 break
             url = f"{cat_url.rstrip('/')}/page/{page}" if page > 1 else cat_url
+            logger.info("Literotica: fetching category %s page %d", cat_url, page)
             time.sleep(rate)
             html = fetch(url)
             if not html:
+                logger.info("Literotica: no HTML for %s, skipping", url)
                 continue
             links = _story_links(html, url)
+            logger.info("Literotica: found %d story links on %s", len(links), url)
             for link in links:
                 if count >= max_stories or link in seen:
                     continue
@@ -77,3 +84,4 @@ def scrape_literotica(max_stories: int = MAX_STORIES, rate: float = RATE) -> Ite
                 if text and len(text) >= 50:
                     count += 1
                     yield (text, link)
+    logger.info("Literotica: finished with %d stories", count)

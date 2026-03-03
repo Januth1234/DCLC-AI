@@ -1,4 +1,5 @@
 """AO3 scraper: search Explicit works → story text."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -6,6 +7,8 @@ from typing import Iterator
 from bs4 import BeautifulSoup
 
 from .base import fetch, RATE
+
+logger = logging.getLogger(__name__)
 
 # AO3 search for Explicit-rated works (various fandoms)
 SEARCH_URL = "https://archiveofourown.org/works?work_search%5Brating_ids%5D=13"
@@ -46,15 +49,19 @@ def scrape_ao3(max_stories: int = MAX_STORIES, rate: float = RATE) -> Iterator[t
     """Yield (text, source_url)."""
     seen = set()
     count = 0
+    logger.info("AO3: starting scrape (max_stories=%d, rate=%.2fs)", max_stories, rate)
     for page in range(1, MAX_PAGES + 1):
         if count >= max_stories:
             break
         url = f"{SEARCH_URL}&page={page}" if page > 1 else SEARCH_URL
+        logger.info("AO3: fetching search page %d (%s)", page, url)
         time.sleep(rate)
         html = fetch(url)
         if not html:
+            logger.info("AO3: no HTML for %s, skipping page %d", url, page)
             continue
         links = _work_links(html, url)
+        logger.info("AO3: found %d work links on page %d", len(links), page)
         for link in links:
             if count >= max_stories or link in seen:
                 continue
@@ -67,3 +74,4 @@ def scrape_ao3(max_stories: int = MAX_STORIES, rate: float = RATE) -> Iterator[t
             if text and len(text) >= 50:
                 count += 1
                 yield (text, link)
+    logger.info("AO3: finished with %d works", count)

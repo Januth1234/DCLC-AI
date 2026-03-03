@@ -1,4 +1,5 @@
 """ASSTR scraper: browse authors/collections → story text."""
+import logging
 import re
 import time
 from typing import Iterator
@@ -7,6 +8,8 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from .base import fetch, RATE
+
+logger = logging.getLogger(__name__)
 
 # ASSTR index and collection pages
 INDEX_URL = "https://asstr.org/~Kristen/"
@@ -47,14 +50,18 @@ def scrape_asstr(max_stories: int = MAX_STORIES, rate: float = RATE) -> Iterator
     seen = set()
     count = 0
     seeds = [INDEX_URL] + COLLECTION_URLS
+    logger.info("ASSTR: starting scrape (max_stories=%d, rate=%.2fs)", max_stories, rate)
     for base_url in seeds:
         if count >= max_stories:
             break
+        logger.info("ASSTR: fetching index/collection %s", base_url)
         time.sleep(rate)
         html = fetch(base_url)
         if not html:
+            logger.info("ASSTR: no HTML for %s, skipping", base_url)
             continue
         links = _extract_links(html, base_url)
+        logger.info("ASSTR: found %d links on %s", len(links), base_url)
         for link in links:
             if count >= max_stories or link in seen:
                 continue
@@ -67,3 +74,4 @@ def scrape_asstr(max_stories: int = MAX_STORIES, rate: float = RATE) -> Iterator
             if text and len(text) >= 50:
                 count += 1
                 yield (text, link)
+    logger.info("ASSTR: finished with %d stories", count)

@@ -15,7 +15,10 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root))
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 # Output paths — merged by merge_raw_data as compulsory
@@ -54,10 +57,15 @@ def main():
     is_colab = os.path.exists("/content") or os.environ.get("COLAB_GPU") is not None
     allow_local = os.environ.get("ALLOW_LOCAL_CORPUS", "").lower() in ("1", "true", "yes")
     if not is_kaggle and not is_colab and not allow_local:
-        logger.info("Skipping scrape (Kaggle/Colab only, or set ALLOW_LOCAL_CORPUS=1)")
-        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT_PATH.write_text("", encoding="utf-8")
-        return 0
+        logger.info(
+            "Running explicit scrape on local environment "
+            "(set ALLOW_LOCAL_CORPUS=1 to acknowledge local scraping)."
+        )
+    elif allow_local:
+        logger.info("ALLOW_LOCAL_CORPUS=1 set; running explicit scrape.")
+    elif is_kaggle or is_colab:
+        logger.info("Detected Kaggle/Colab environment; running explicit scrape.")
+
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     seen = set()
     lines = []
@@ -74,6 +82,7 @@ def main():
 
     for name, mod, fn in scrapers:
         try:
+            logger.info("Starting scraper %s (%s.%s)", name, mod, fn)
             m = __import__(mod, fromlist=[fn])
             scrape_fn = getattr(m, fn)
             count = 0
@@ -88,7 +97,7 @@ def main():
                         seen.add(key)
                         lines.append(chunk)
                         count += 1
-            logger.info("Fetched %d chunks from %s", count, name)
+            logger.info("Finished scraper %s with %d chunks", name, count)
         except Exception as e:
             logger.warning("Scraper %s failed: %s", name, e)
 
@@ -112,6 +121,7 @@ def main():
     VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
     for name, mod, fn in media_scrapers:
         try:
+            logger.info("Starting media scraper %s (%s.%s)", name, mod, fn)
             m = __import__(mod, fromlist=[fn])
             scrape_media = getattr(m, fn)
             site_dir_img = IMAGES_DIR / name.lower()
@@ -134,6 +144,8 @@ def main():
                         captions_list.append({"caption": caption or path.name})
             if idx:
                 logger.info("Media from %s: %d items", name, idx)
+            else:
+                logger.info("Media scraper %s produced 0 items", name)
         except Exception as e:
             logger.warning("Media scraper %s failed: %s", name, e)
 

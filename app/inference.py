@@ -21,7 +21,17 @@ def _load():
         model_path = cfg.get("model_path", "output")
         ckpt = next(Path(model_path).glob("checkpoint_*.pt"), None) or Path(model_path) / "checkpoint_1500.pt"
         if not ckpt.exists():
+            # Fallbacks: any checkpoint under output/, then bundled models/ for desktop installer
             ckpt = next(Path("output").glob("checkpoint_*.pt"), None)
+        if (ckpt is None or not ckpt.exists()) and Path("models").exists():
+            # Prefer named 500M checkpoint if present inside installer data
+            preferred = Path("models") / "checkpoint_12000.pt"
+            if preferred.exists():
+                ckpt = preferred
+            else:
+                alt = next(Path("models").glob("checkpoint_*.pt"), None)
+                if alt is not None:
+                    ckpt = alt
         if ckpt and ckpt.exists():
             from src.inference.loader import load_model
             _model = load_model(str(ckpt), {"vocab_size": 50000})
